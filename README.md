@@ -3,3 +3,4 @@
 
 - *Test*    一个超用户管理系统
 - *SnakeGame*   其中包含一个贪吃蛇游戏(Java Swing)和一个简易彩票系统
+- *desktop_pet*   用Python写的桌面宠物小程序
