@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek 成本计算器</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --ink: #17202a;
+    --muted: #5c6b7a;
+    --line: #d7dee5;
+    --accent: #1769aa;
+    --accent-soft: #e7f1f9;
+    --ok: #0f7b6c;
+    --ok-soft: #e4f5f2;
+    --warn: #b45309;
+    --warn-soft: #fdf1e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 20px 48px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 26px;
+    letter-spacing: 0;
+  }
+  .badge {
+    color: var(--warn);
+    background: var(--warn-soft);
+    border: 1px solid #eacb9d;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+  .field label output {
+    color: var(--muted);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="number"], select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 15px;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .metric {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+    min-height: 128px;
+  }
+  .metric .name {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .metric .usd {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 8px 0 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric .cny {
+    color: var(--muted);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric.daily { background: var(--accent-soft); border-color: #b8d6ea; }
+  .metric.monthly { background: var(--ok-soft); border-color: #b7ddd6; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  tr:hover {
+    background-color: #f7f9fb;
+  }
+  td:last-child, th:last-child { text-align: right; }
+  .note {
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .note a { color: var(--accent); }
+
+  .btn-wrap {
+    margin-top: 16px;
+    text-align: right;
+  }
+  button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button:hover {
+    background: #125890;
+  }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 20px 14px 32px; }
+    h1 { font-size: 22px; }
+    .grid { grid-template-columns: 1fr; }
+    .results { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>DeepSeek 费用计算器</h1>
+    <div class="badge">官方新定价：2026-08-17 起生效</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="使用量设置">
+      <div class="field">
+        <label for="model">模型</label>
+        <select id="model">
+          <option value="flash" selected>deepseek-v4-flash</option>
+          <option value="pro">deepseek-v4-pro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="inputM">日均输入 <output id="inputMOut">2</output> 百万 token</label>
+        <input id="inputM" type="number" min="0" step="0.1" value="2">
+      </div>
+      <div class="field">
+        <label for="hit">缓存命中率 <output id="hitOut">70%</output></label>
+        <input id="hit" type="range" min="0" max="100" step="1" value="70">
+      </div>
+      <div class="field">
+        <label for="outputM">日均输出 <output id="outputMOut">0.2</output> 百万 token</label>
+        <input id="outputM" type="number" min="0" step="0.01" value="0.2">
+      </div>
+      <div class="field">
+        <label for="peak">高峰时段占比 <output id="peakOut">50%</output></label>
+        <input id="peak" type="range" min="0" max="100" step="5" value="50">
+        <div class="hint">高峰：09:00-12:00、14:00-18:00 UTC+8；本工具为静态比例估算，非实时时段计费</div>
+      </div>
+      <div class="field">
+        <label for="days">每月使用天数</label>
+        <input id="days" type="number" min="1" max="31" step="1" value="30">
+      </div>
+    </section>
+
+    <section class="panel" aria-label="成本结果">
+      <div class="results">
+        <div class="metric daily">
+          <div class="name">日均成本（人民币）</div>
+          <div class="usd" id="dailyCny">¥0.00</div>
+        </div>
+        <div class="metric monthly">
+          <div class="name">月均成本（人民币）</div>
+          <div class="usd" id="monthlyCny">¥0.00</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>日均 tokens</th>
+            <th>日均费用（人民币）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>缓存命中输入</td><td id="hitTok">0</td><td id="hitCost">¥0.00</td></tr>
+          <tr><td>缓存未命中输入</td><td id="missTok">0</td><td id="missCost">¥0.00</td></tr>
+          <tr><td>输出</td><td id="outTok">0</td><td id="outCost">¥0.00</td></tr>
+        </tbody>
+      </table>
+      <div class="btn-wrap">
+        <button id="copyBtn">复制测算结果</button>
+      </div>
+      <div class="note">
+        单位：人民币（元），按每百万 token 计价。价格参考
+        <a href="https://api-docs.deepseek.com/zh-cn/quick_start/pricing/" target="_blank" rel="noopener">DeepSeek 官方定价</a>，
+        实际费用以平台账单为准。
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // 单位：元 / 百万tokens
+  const PRICES = {
+    flash: {
+      off: { hit: 0.05, miss: 1.5, out: 4.5 },
+      peak: { hit: 0.10, miss: 3.0, out: 9.0 }
+    },
+    pro: {
+      off: { hit: 0.15, miss: 4.5, out: 13.5 },
+      peak: { hit: 0.30, miss: 9.0, out: 27.0 }
+    }
+  };
+
+  // DOM获取容错封装
+  const $ = (id) => {
+    const el = document.getElementById(id);
+    if (!el) {
+      return {
+        textContent: "",
+        value: "",
+        addEventListener: () => {}
+      };
+    }
+    return el;
+  };
+
+  function fmtCNY(v) {
+    return "¥" + v.toLocaleString("zh-CN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+  }
+
+  // 统一token格式，全部以M为单位展示
+  function fmtToken(v) {
+    return v.toFixed(2) + "M";
+  }
+
+  function calc() {
+    const model = $("model").value;
+    let inputM = Math.max(0, parseFloat($("inputM").value) || 0);
+    let hitRate = Math.max(0, Math.min(1, (parseInt($("hit").value, 10) || 0) / 100));
+    let outputM = Math.max(0, parseFloat($("outputM").value) || 0);
+    let peakRate = Math.max(0, Math.min(1, (parseInt($("peak").value, 10) || 0) / 100));
+    let days = Math.max(1, Math.min(31, parseInt($("days").value, 10) || 30));
+    const p = PRICES[model];
+
+    const hitM = inputM * hitRate;
+    const missM = inputM * (1 - hitRate);
+    const offShare = 1 - peakRate;
+
+    const hitCost = (hitM * p.off.hit * offShare) + (hitM * p.peak.hit * peakRate);
+    const missCost = (missM * p.off.miss * offShare) + (missM * p.peak.miss * peakRate);
+    const outCost = (outputM * p.off.out * offShare) + (outputM * p.peak.out * peakRate);
+    const daily = hitCost + missCost + outCost;
+    const monthly = daily * days;
+
+    $("inputMOut").textContent = inputM;
+    $("outputMOut").textContent = outputM;
+    $("hitOut").textContent = Math.round(hitRate * 100) + "%";
+    $("peakOut").textContent = Math.round(peakRate * 100) + "%";
+
+    $("dailyCny").textContent = fmtCNY(daily);
+    $("monthlyCny").textContent = fmtCNY(monthly);
+
+    $("hitTok").textContent = fmtToken(hitM);
+    $("missTok").textContent = fmtToken(missM);
+    $("outTok").textContent = fmtToken(outputM);
+
+    $("hitCost").textContent = fmtCNY(hitCost);
+    $("missCost").textContent = fmtCNY(missCost);
+    $("outCost").textContent = fmtCNY(outCost);
+  }
+
+  // 数字输入框失焦校验
+  function bindInputValidate() {
+    document.querySelectorAll('input[type="number"]').forEach(el => {
+      el.addEventListener('blur', () => {
+        let val = parseFloat(el.value);
+        if (isNaN(val) || val < 0) val = 0;
+        if (el.id === "days") val = Math.max(1, Math.min(31, val));
+        el.value = val;
+        calc();
+      })
+    })
+  }
+
+  // 复制结果功能
+  function bindCopy() {
+    $("copyBtn").addEventListener("click", async () => {
+      const text = `
+【DeepSeek 费用测算】
+模型：${$("model").options[$("model").selectedIndex].text}
+日均输入：${$("inputM").value}M tokens
+缓存命中率：${$("hitOut").textContent}
+日均输出：${$("outputM").value}M tokens
+高峰占比：${$("peakOut").textContent}
+每月天数：${$("days").value}天
+
+缓存命中输入：${$("hitTok").textContent} | ${$("hitCost").textContent}
+缓存未命中输入：${$("missTok").textContent} | ${$("missCost").textContent}
+输出：${$("outTok").textContent} | ${$("outCost").textContent}
+
+日均成本：${$("dailyCny").textContent}
+月均成本：${$("monthlyCny").textContent}
+      `.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("测算结果已复制剪贴板！");
+      } catch (err) {
+        alert("复制失败，请手动复制");
+      }
+    })
+  }
+
+  // 统一绑定事件
+  function initEvents() {
+    ["model", "inputM", "hit", "outputM", "peak", "days"].forEach(id => {
+      $(id).addEventListener("input", calc);
+      $(id).addEventListener("change", calc);
+    });
+    bindInputValidate();
+    bindCopy();
+  }
+
+  initEvents();
+  calc();
+</script>
+</body>
+</html>
