@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>"恒逸家的"视频播放器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0 16px;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* 播放器区域 */
+        .player-section {
+            margin-bottom: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .player-section video {
+            width: 100%;
+            display: block;
+            background: #000;
+            max-height: 60vh;
+        }
+
+        .now-playing {
+            padding: 10px 14px;
+            background: #16213e;
+            font-size: 0.85rem;
+            color: #aaa;
+            word-break: break-all;
+        }
+
+        .now-playing span {
+            color: #4fc3f7;
+            font-weight: 500;
+        }
+
+        /* 搜索框 */
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1rem;
+            border: 2px solid #2a2a4a;
+            border-radius: 10px;
+            background: #16213e;
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #4fc3f7;
+        }
+
+        .search-box input::placeholder {
+            color: #666;
+        }
+
+        /* 视频列表 */
+        .video-list {
+            list-style: none;
+        }
+
+        .video-list li {
+            margin-bottom: 8px;
+        }
+
+        .video-list a {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: #16213e;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            transition: background 0.2s, transform 0.1s;
+            word-break: break-all;
+            min-height: 52px;
+        }
+
+        .video-list a:hover,
+        .video-list a:active {
+            background: #1f3460;
+        }
+
+        .video-list a:active {
+            transform: scale(0.98);
+        }
+
+        .video-list .icon {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            margin-right: 12px;
+            background: #4fc3f7;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .video-list .name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-list .ext-tag {
+            flex-shrink: 0;
+            margin-left: 8px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            background: #2a2a4a;
+            border-radius: 4px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .count {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        /* 响应式：手机竖屏 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            header h1 {
+                font-size: 1.2rem;
+            }
+
+            .video-list a {
+                padding: 12px 14px;
+                font-size: 0.9rem;
+            }
+
+            .video-list .icon {
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 “恒逸家”的视频播放器</h1>
+            <p>点击下方视频即可在线播放，支持拖动进度条</p>
+        </header>
+
+        <!-- 播放器 -->
+        <div class="player-section">
+            <video id="player" controls playsinline preload="metadata">
+                您的浏览器不支持 video 标签。
+            </video>
+            <div class="now-playing" id="nowPlaying">请选择一个视频开始播放</div>
+        </div>
+
+        <!-- 搜索 -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 搜索视频文件名..." />
+        </div>
+
+        <div class="count" id="countInfo"></div>
+
+        <!-- 视频列表 -->
+        <ul class="video-list" id="videoList"></ul>
+    </div>
+
+    <script>
+        const videos = {{ videos|tojson }};
+        const player = document.getElementById('player');
+        const nowPlaying = document.getElementById('nowPlaying');
+        const videoList = document.getElementById('videoList');
+        const searchInput = document.getElementById('searchInput');
+        const countInfo = document.getElementById('countInfo');
+
+        function getExt(filename) {
+            const idx = filename.lastIndexOf('.');
+            return idx >= 0 ? filename.substring(idx + 1).toUpperCase() : '';
+        }
+
+        function renderList(filter = '') {
+            const keyword = filter.toLowerCase().trim();
+            const filtered = keyword
+                ? videos.filter(v => v.toLowerCase().includes(keyword))
+                : videos;
+
+            countInfo.textContent = `共 ${filtered.length} 个视频`;
+
+            if (filtered.length === 0) {
+                videoList.innerHTML = '<li class="empty">没有找到匹配的视频</li>';
+                return;
+            }
+
+            videoList.innerHTML = filtered.map(v => {
+                const displayName = v;
+                const ext = getExt(v);
+                const encoded = encodeURIComponent(v).replace(/%2F/g, '/');
+                return `
+                    <li>
+                        <a href="/video/${encoded}" data-src="/video/${encoded}" data-name="${v.replace(/"/g, '&quot;')}">
+                            <div class="icon">▶</div>
+                            <div class="name">${displayName}</div>
+                            <span class="ext-tag">${ext}</span>
+                        </a>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // 点击列表项：在页面内播放，不跳转
+        videoList.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-src]');
+            if (!link) return;
+            e.preventDefault();
+            const src = link.getAttribute('data-src');
+            const name = link.getAttribute('data-name');
+            player.src = src;
+            player.load();
+            player.play().catch(() => {
+                // 自动播放被浏览器阻止时忽略，用户手动点播放
+            });
+            nowPlaying.innerHTML = `正在播放：<span>${name}</span>`;
+            // 滚动到播放器
+            document.querySelector('.player-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // 搜索实时过滤
+        searchInput.addEventListener('input', function () {
+            renderList(this.value);
+        });
+
+        // 初始化
+        renderList();
+    </script>
+</body>
+</html>
