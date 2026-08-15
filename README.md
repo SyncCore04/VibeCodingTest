@@ -6,3 +6,4 @@
 - *desktop_pet*   用Python写的桌面宠物小程序
 - deepseek-token-cost-calculator 【单文件网页工具】DeepSeek模型Token费用测算器(2026.08.14)
   > 支持Flash/Pro双模型、2026-08-17重新定价、闲时/高峰阶梯费率、缓存命中率测算，一键复制测算结果，开箱即用无需部署。
+- SmartCartSystem    一个初学面向对象的小demo
