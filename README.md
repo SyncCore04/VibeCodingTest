@@ -7,4 +7,4 @@
 - deepseek-token-cost-calculator 【单文件网页工具】DeepSeek模型Token费用测算器(2026.08.14)
   > 支持Flash/Pro双模型、2026-08-17重新定价、闲时/高峰阶梯费率、缓存命中率测算，一键复制测算结果，开箱即用无需部署。
 - SmartCartSystem    一个初学面向对象的小demo(2026.08.15)
-- Video-in-myphone   Python+Flask实现的局域网播放器，启动后，同局域网下可通过浏览器访问本机的视频，可以拖动进度条，倍速等(2026.08.16)
+- Video-in-myphone   Python+Flask实现的局域网播放器，启动后，同局域网下可通过浏览器访问本机的视频，可以拖动进度条，倍速等,可在**Releases**下载已打包程序，一键启动(2026.08.16)
