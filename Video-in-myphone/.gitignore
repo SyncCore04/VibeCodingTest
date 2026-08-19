@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# SQLite 数据库（运行时生成，含个人数据）
+rewind.db
+rewind.db-wal
+rewind.db-shm
+
+# PyInstaller 打包产物
+build/
+dist/
+*.spec
+
+# 日志
+*.log
+server_out.log
+server_err.log
+
+# 配置文件（含个人路径，可选忽略）
+# video_dir.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.bak
+*.old
