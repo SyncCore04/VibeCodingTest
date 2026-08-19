@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回映 Rewind - 仪表盘</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #1a1a2e; color: #e0e0e0; min-height: 100vh; line-height: 1.6;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 0 24px; flex-wrap: wrap; gap: 12px;
+        }
+        header h1 { font-size: 1.4rem; color: #fff; }
+        .back-link {
+            color: #4fc3f7; text-decoration: none; font-size: 0.85rem;
+            padding: 8px 16px; border: 1px solid #4fc3f7; border-radius: 8px;
+        }
+        .back-link:hover { background: rgba(79,195,247,0.1); }
+        .refresh-btn {
+            background: #16213e; color: #4fc3f7; border: 1px solid #2a2a4a;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+        }
+        .refresh-btn:hover { border-color: #4fc3f7; }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px; margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #16213e; border-radius: 12px; padding: 18px 16px; text-align: center;
+        }
+        .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #4fc3f7; }
+        .stat-card .label { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+        /* 面板 */
+        .panel {
+            background: #16213e; border-radius: 12px; padding: 18px; margin-bottom: 20px;
+        }
+        .panel h2 { font-size: 1.05rem; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .panel h2 .icon { font-size: 1.1rem; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* 表格 */
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #2a2a4a; }
+        th { color: #888; font-weight: 500; font-size: 0.78rem; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        .video-name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rank { display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center;
+            background: #2a2a4a; border-radius: 50%; font-size: 0.75rem; font-weight: 600; }
+        .rank.top1 { background: #ffd700; color: #1a1a2e; }
+        .rank.top2 { background: #c0c0c0; color: #1a1a2e; }
+        .rank.top3 { background: #cd7f32; color: #fff; }
+
+        /* 设备卡片 */
+        .device-list { display: flex; flex-direction: column; gap: 10px; }
+        .device-item {
+            background: #0f1729; border-radius: 10px; padding: 14px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .device-info { flex: 1; min-width: 200px; }
+        .device-name { font-size: 0.95rem; color: #fff; font-weight: 500; }
+        .device-meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
+        .device-stats { font-size: 0.8rem; color: #aaa; text-align: right; min-width: 120px; }
+        .device-stats .time { color: #4fc3f7; font-weight: 600; }
+        .tag-input {
+            background: #1a1a2e; border: 1px solid #2a2a4a; color: #fff; padding: 6px 10px;
+            border-radius: 6px; font-size: 0.85rem; width: 140px; outline: none;
+        }
+        .tag-input:focus { border-color: #4fc3f7; }
+        .save-tag {
+            background: #4fc3f7; color: #1a1a2e; border: none; padding: 6px 12px;
+            border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+        }
+
+        /* 最近活动 */
+        .activity-item {
+            display: flex; justify-content: space-between; padding: 10px 0;
+            border-bottom: 1px solid #2a2a4a; font-size: 0.85rem; flex-wrap: wrap; gap: 4px;
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-video { color: #e0e0e0; flex: 1; min-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .activity-device { color: #4fc3f7; font-size: 0.8rem; }
+        .activity-time { color: #666; font-size: 0.75rem; white-space: nowrap; }
+        .completed-badge { color: #81c784; font-size: 0.75rem; }
+
+        .chart-wrap { position: relative; height: 260px; }
+        .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 回映 Rewind · 仪表盘</h1>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <button class="refresh-btn" onclick="loadAll()">🔄 刷新</button>
+                <a href="/" class="back-link">← 返回播放页</a>
+            </div>
+        </header>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="two-col">
+            <!-- 观看趋势 -->
+            <div class="panel">
+                <h2><span class="icon">📈</span> 近14天观看趋势</h2>
+                <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+            </div>
+            <!-- 最多观看 -->
+            <div class="panel">
+                <h2><span class="icon">🏆</span> 最多观看视频</h2>
+                <div id="topVideos"></div>
+            </div>
+        </div>
+
+        <!-- 设备管理 -->
+        <div class="panel">
+            <h2><span class="icon">📱</span> 设备管理</h2>
+            <div class="device-list" id="deviceList"></div>
+        </div>
+
+        <!-- 最近观看 -->
+        <div class="panel">
+            <h2><span class="icon">🕐</span> 最近观看记录</h2>
+            <div id="recentActivity"></div>
+        </div>
+    </div>
+
+    <script>
+        let trendChart = null;
+
+        function fmtDuration(sec) {
+            sec = Math.round(sec || 0);
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            const pad = n => String(n).padStart(2, '0');
+            if (h > 0) return `${h}小时${pad(m)}分`;
+            if (m > 0) return `${m}分${pad(s)}秒`;
+            return `${s}秒`;
+        }
+
+        function fmtDateTime(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function shortName(path) {
+            const parts = path.split('/');
+            return parts[parts.length - 1];
+        }
+
+        // 加载统计
+        async function loadStats() {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card"><div class="num">${data.total_devices}</div><div class="label">设备数</div></div>
+                <div class="stat-card"><div class="num">${data.total_sessions}</div><div class="label">播放次数</div></div>
+                <div class="stat-card"><div class="num">${fmtDuration(data.total_watch_sec)}</div><div class="label">总观看时长</div></div>
+                <div class="stat-card"><div class="num">${data.total_completed}</div><div class="label">看完数</div></div>
+                <div class="stat-card"><div class="num">${data.unique_videos}</div><div class="label">看过的视频</div></div>
+            `;
+
+            // 最多观看
+            const topEl = document.getElementById('topVideos');
+            if (data.top_videos.length === 0) {
+                topEl.innerHTML = '<div class="empty-state">暂无观看记录</div>';
+            } else {
+                topEl.innerHTML = `<table><tr><th>#</th><th>视频</th><th>次数</th><th>时长</th></tr>` +
+                    data.top_videos.map((v, i) => {
+                        const cls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
+                        return `<tr>
+                            <td><span class="rank ${cls}">${i+1}</span></td>
+                            <td class="video-name" title="${v.video_path}">${shortName(v.video_path)}</td>
+                            <td>${v.play_count}</td>
+                            <td>${fmtDuration(v.total_sec)}</td>
+                        </tr>`;
+                    }).join('') + '</table>';
+            }
+
+            // 最近观看
+            const recentEl = document.getElementById('recentActivity');
+            if (data.recent.length === 0) {
+                recentEl.innerHTML = '<div class="empty-state">暂无观看记录</div>';
+            } else {
+                recentEl.innerHTML = data.recent.map(r => `
+                    <div class="activity-item">
+                        <div class="activity-video" title="${r.video_path}">${shortName(r.video_path)}</div>
+                        <div>
+                            <span class="activity-device">${r.device_tag}</span>
+                            ${r.completed ? '<span class="completed-badge"> ✓看完</span>' : ''}
+                        </div>
+                        <div class="activity-time">${fmtDateTime(r.started_at)}</div>
+                    </div>
+                `).join('');
+            }
+
+            // 趋势图
+            renderTrendChart(data.daily);
+        }
+
+        function renderTrendChart(daily) {
+            const labels = daily.map(d => d.day);
+            const data = daily.map(d => Math.round((d.sec || 0) / 60)); // 分钟
+
+            if (trendChart) trendChart.destroy();
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '观看时长(分钟)',
+                        data: data,
+                        backgroundColor: 'rgba(79,195,247,0.6)',
+                        borderColor: '#4fc3f7',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#888', font: { size: 10 } }, grid: { display: false } },
+                        y: { ticks: { color: '#888' }, grid: { color: '#2a2a4a' } }
+                    }
+                }
+            });
+        }
+
+        // 加载设备
+        async function loadDevices() {
+            const res = await fetch('/api/devices');
+            const devices = await res.json();
+            const el = document.getElementById('deviceList');
+
+            if (devices.length === 0) {
+                el.innerHTML = '<div class="empty-state">暂无设备</div>';
+                return;
+            }
+
+            el.innerHTML = devices.map(d => {
+                const displayName = d.tag || '未命名设备';
+                const uaShort = (d.user_agent || '').substring(0, 60);
+                return `
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">${displayName}</div>
+                        <div class="device-meta">IP: ${d.ip || '-'} · ${uaShort}...</div>
+                        <div class="device-meta">首次: ${fmtDateTime(d.first_seen)} · 最近: ${fmtDateTime(d.last_seen)}</div>
+                    </div>
+                    <div class="device-stats">
+                        <div>播放 <strong>${d.play_count}</strong> 次</div>
+                        <div class="time">${fmtDuration(d.total_sec)}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <input type="text" class="tag-input" placeholder="给设备打标签"
+                            value="${d.tag || ''}" data-id="${d.id}"
+                            onkeydown="if(event.key==='Enter')saveTag(this)" />
+                        <button class="save-tag" onclick="saveTag(this.previousElementSibling)">保存</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function saveTag(input) {
+            const deviceId = input.getAttribute('data-id');
+            const tag = input.value.trim();
+            await fetch(`/api/devices/${deviceId}/tag`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag })
+            });
+            loadDevices();
+            loadStats();
+        }
+
+        async function loadAll() {
+            await Promise.all([loadStats(), loadDevices()]);
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>

@@ -3,223 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>"恒逸家的"视频播放器</title>
+    <title>回映 Rewind</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: #1a1a2e;
-            color: #e0e0e0;
-            min-height: 100vh;
-            line-height: 1.6;
+            background: #1a1a2e; color: #e0e0e0; min-height: 100vh; line-height: 1.6;
         }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 16px;
+        .container { max-width: 900px; margin: 0 auto; padding: 16px; }
+        header { text-align: center; padding: 20px 0 16px; position: relative; }
+        header h1 { font-size: 1.4rem; color: #fff; font-weight: 600; }
+        header p { font-size: 0.85rem; color: #888; margin-top: 4px; }
+        .admin-link {
+            position: absolute; right: 0; top: 20px; font-size: 0.8rem; color: #4fc3f7;
+            text-decoration: none; padding: 6px 12px; border: 1px solid #4fc3f7; border-radius: 6px;
         }
+        .admin-link:hover { background: rgba(79,195,247,0.1); }
 
-        header {
-            text-align: center;
-            padding: 20px 0 16px;
-        }
-
-        header h1 {
-            font-size: 1.4rem;
-            color: #fff;
-            font-weight: 600;
-        }
-
-        header p {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: 4px;
-        }
-
-        /* 播放器区域 */
+        /* 播放器 */
         .player-section {
-            margin-bottom: 24px;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-bottom: 24px; border-radius: 12px; overflow: hidden; background: #000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
-
-        .player-section video {
-            width: 100%;
-            display: block;
-            background: #000;
-            max-height: 60vh;
-        }
-
+        .player-section video { width: 100%; display: block; background: #000; max-height: 60vh; }
         .now-playing {
-            padding: 10px 14px;
-            background: #16213e;
-            font-size: 0.85rem;
-            color: #aaa;
-            word-break: break-all;
+            padding: 10px 14px; background: #16213e; font-size: 0.85rem; color: #aaa; word-break: break-all;
+        }
+        .now-playing span { color: #4fc3f7; font-weight: 500; }
+
+        /* 续播提示 toast */
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+            background: #16213e; border: 1px solid #4fc3f7; color: #fff; padding: 12px 20px;
+            border-radius: 10px; font-size: 0.9rem; z-index: 999; transition: transform 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast button {
+            background: #4fc3f7; color: #1a1a2e; border: none; padding: 4px 12px; border-radius: 6px;
+            font-size: 0.8rem; cursor: pointer; font-weight: 600;
         }
 
-        .now-playing span {
-            color: #4fc3f7;
-            font-weight: 500;
-        }
-
-        /* 搜索框 */
-        .search-box {
-            margin-bottom: 16px;
-        }
-
+        /* 搜索 */
+        .search-box { margin-bottom: 16px; }
         .search-box input {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 1rem;
-            border: 2px solid #2a2a4a;
-            border-radius: 10px;
-            background: #16213e;
-            color: #fff;
-            outline: none;
-            transition: border-color 0.2s;
+            width: 100%; padding: 12px 16px; font-size: 1rem; border: 2px solid #2a2a4a;
+            border-radius: 10px; background: #16213e; color: #fff; outline: none; transition: border-color 0.2s;
         }
+        .search-box input:focus { border-color: #4fc3f7; }
+        .search-box input::placeholder { color: #666; }
 
-        .search-box input:focus {
-            border-color: #4fc3f7;
-        }
-
-        .search-box input::placeholder {
-            color: #666;
-        }
+        .count { font-size: 0.8rem; color: #666; margin-bottom: 12px; padding-left: 4px; }
 
         /* 视频列表 */
-        .video-list {
-            list-style: none;
-        }
-
-        .video-list li {
-            margin-bottom: 8px;
-        }
-
+        .video-list { list-style: none; }
+        .video-list li { margin-bottom: 8px; }
         .video-list a {
-            display: flex;
-            align-items: center;
-            padding: 14px 16px;
-            background: #16213e;
-            border-radius: 10px;
-            text-decoration: none;
-            color: #e0e0e0;
-            font-size: 0.95rem;
-            transition: background 0.2s, transform 0.1s;
-            word-break: break-all;
-            min-height: 52px;
+            display: flex; align-items: center; padding: 14px 16px; background: #16213e;
+            border-radius: 10px; text-decoration: none; color: #e0e0e0; font-size: 0.95rem;
+            transition: background 0.2s, transform 0.1s; word-break: break-all; min-height: 52px;
         }
-
-        .video-list a:hover,
-        .video-list a:active {
-            background: #1f3460;
-        }
-
-        .video-list a:active {
-            transform: scale(0.98);
-        }
-
+        .video-list a:hover, .video-list a:active { background: #1f3460; }
+        .video-list a:active { transform: scale(0.98); }
         .video-list .icon {
-            flex-shrink: 0;
-            width: 36px;
-            height: 36px;
-            margin-right: 12px;
-            background: #4fc3f7;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
+            flex-shrink: 0; width: 36px; height: 36px; margin-right: 12px; background: #4fc3f7;
+            border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
         }
-
-        .video-list .name {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
+        .video-list .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .video-list .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 8px; }
         .video-list .ext-tag {
-            flex-shrink: 0;
-            margin-left: 8px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            background: #2a2a4a;
-            border-radius: 4px;
-            color: #aaa;
-            text-transform: uppercase;
+            padding: 2px 8px; font-size: 0.7rem; background: #2a2a4a; border-radius: 4px;
+            color: #aaa; text-transform: uppercase;
         }
-
-        .empty {
-            text-align: center;
-            padding: 40px 20px;
-            color: #666;
-            font-size: 0.95rem;
+        .video-list .resume-badge {
+            font-size: 0.72rem; color: #ffb74d; background: rgba(255,183,77,0.12);
+            padding: 2px 8px; border-radius: 4px; white-space: nowrap;
         }
-
-        .count {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 12px;
-            padding-left: 4px;
+        .video-list .done-badge {
+            font-size: 0.72rem; color: #81c784; background: rgba(129,199,132,0.12);
+            padding: 2px 8px; border-radius: 4px; white-space: nowrap;
         }
+        .empty { text-align: center; padding: 40px 20px; color: #666; font-size: 0.95rem; }
 
-        /* 响应式：手机竖屏 */
         @media (max-width: 480px) {
-            .container {
-                padding: 12px;
-            }
-
-            header h1 {
-                font-size: 1.2rem;
-            }
-
-            .video-list a {
-                padding: 12px 14px;
-                font-size: 0.9rem;
-            }
-
-            .video-list .icon {
-                width: 32px;
-                height: 32px;
-                font-size: 1rem;
-            }
+            .container { padding: 12px; }
+            header h1 { font-size: 1.2rem; }
+            .admin-link { position: static; display: inline-block; margin-top: 8px; }
+            .video-list a { padding: 12px 14px; font-size: 0.9rem; }
+            .video-list .icon { width: 32px; height: 32px; font-size: 1rem; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎬 “恒逸家”的视频播放器</h1>
-            <p>点击下方视频即可在线播放，支持拖动进度条</p>
+            <h1>🎬 回映 Rewind</h1>
+            <p>局域网视频播放器 · 支持断点续播</p>
+            <a href="/admin" class="admin-link">📊 仪表盘</a>
         </header>
 
-        <!-- 播放器 -->
         <div class="player-section">
-            <video id="player" controls playsinline preload="metadata">
-                您的浏览器不支持 video 标签。
-            </video>
+            <video id="player" controls playsinline preload="metadata">您的浏览器不支持 video 标签。</video>
             <div class="now-playing" id="nowPlaying">请选择一个视频开始播放</div>
         </div>
 
-        <!-- 搜索 -->
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="🔍 搜索视频文件名..." />
         </div>
-
         <div class="count" id="countInfo"></div>
-
-        <!-- 视频列表 -->
         <ul class="video-list" id="videoList"></ul>
+    </div>
+
+    <!-- 续播提示 -->
+    <div class="toast" id="toast">
+        <span id="toastMsg"></span>
+        <button id="toastRestart">从头播放</button>
     </div>
 
     <script>
@@ -229,18 +127,54 @@
         const videoList = document.getElementById('videoList');
         const searchInput = document.getElementById('searchInput');
         const countInfo = document.getElementById('countInfo');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        const toastRestart = document.getElementById('toastRestart');
+
+        // 本设备所有视频的进度缓存
+        let progressMap = {};
+        // 当前播放会话
+        let currentSession = null;
+        let lastProgressSend = 0;
+        let currentVideo = null;
+
+        function fmtTime(sec) {
+            sec = Math.round(sec || 0);
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            const pad = n => String(n).padStart(2, '0');
+            return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+        }
 
         function getExt(filename) {
             const idx = filename.lastIndexOf('.');
             return idx >= 0 ? filename.substring(idx + 1).toUpperCase() : '';
         }
 
+        function showToast(msg, onRestart) {
+            toastMsg.textContent = msg;
+            toast.classList.add('show');
+            toastRestart.onclick = () => {
+                toast.classList.remove('show');
+                if (onRestart) onRestart();
+            };
+            setTimeout(() => toast.classList.remove('show'), 5000);
+        }
+
+        // 加载本设备所有进度
+        async function loadAllProgress() {
+            try {
+                const res = await fetch('/api/progress/all');
+                const data = await res.json();
+                progressMap = {};
+                data.forEach(item => { progressMap[item.video_path] = item; });
+            } catch (e) { console.warn('加载进度失败', e); }
+        }
+
         function renderList(filter = '') {
             const keyword = filter.toLowerCase().trim();
-            const filtered = keyword
-                ? videos.filter(v => v.toLowerCase().includes(keyword))
-                : videos;
-
+            const filtered = keyword ? videos.filter(v => v.toLowerCase().includes(keyword)) : videos;
             countInfo.textContent = `共 ${filtered.length} 个视频`;
 
             if (filtered.length === 0) {
@@ -249,45 +183,158 @@
             }
 
             videoList.innerHTML = filtered.map(v => {
-                const displayName = v;
                 const ext = getExt(v);
                 const encoded = encodeURIComponent(v).replace(/%2F/g, '/');
+                const prog = progressMap[v];
+                let badge = '';
+                if (prog && prog.duration > 0 && prog.position > 0) {
+                    if (prog.position / prog.duration >= 0.9) {
+                        badge = '<span class="done-badge">✓ 已看完</span>';
+                    } else {
+                        badge = `<span class="resume-badge">续播 ${fmtTime(prog.position)}</span>`;
+                    }
+                }
                 return `
                     <li>
                         <a href="/video/${encoded}" data-src="/video/${encoded}" data-name="${v.replace(/"/g, '&quot;')}">
                             <div class="icon">▶</div>
-                            <div class="name">${displayName}</div>
-                            <span class="ext-tag">${ext}</span>
+                            <div class="name">${v}</div>
+                            <div class="meta">
+                                <span class="ext-tag">${ext}</span>
+                                ${badge}
+                            </div>
                         </a>
                     </li>
                 `;
             }).join('');
         }
 
-        // 点击列表项：在页面内播放，不跳转
+        // 结束当前会话
+        function endCurrentSession() {
+            if (!currentSession) return;
+            const sid = currentSession;
+            const pos = player.currentTime || 0;
+            currentSession = null;
+            try {
+                const data = new Blob([JSON.stringify({ session_id: sid, position: pos })], { type: 'application/json' });
+                navigator.sendBeacon('/api/end', data);
+            } catch (e) { /* ignore */ }
+        }
+
+        // 上报进度
+        async function sendProgress() {
+            if (!currentSession || !currentVideo) return;
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video: currentVideo,
+                        position: player.currentTime,
+                        duration: player.duration || 0,
+                        session_id: currentSession
+                    })
+                });
+                // 更新本地缓存
+                if (progressMap[currentVideo]) {
+                    progressMap[currentVideo].position = player.currentTime;
+                    progressMap[currentVideo].duration = player.duration || 0;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // 播放视频
+        async function playVideo(videoPath, videoSrc) {
+            // 结束上一个会话
+            endCurrentSession();
+            currentVideo = videoPath;
+
+            player.src = videoSrc;
+            nowPlaying.innerHTML = `正在播放：<span>${videoPath}</span>`;
+
+            // 加载元数据后检查续播
+            const onLoaded = async () => {
+                player.removeEventListener('loadedmetadata', onLoaded);
+
+                // 获取保存的进度
+                let savedPos = 0;
+                try {
+                    const res = await fetch(`/api/progress?video=${encodeURIComponent(videoPath)}`);
+                    const data = await res.json();
+                    savedPos = data.position || 0;
+                } catch (e) { /* ignore */ }
+
+                // 创建播放会话
+                try {
+                    const res = await fetch('/api/play', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: videoPath, duration: player.duration || 0 })
+                    });
+                    const data = await res.json();
+                    currentSession = data.session_id;
+                } catch (e) { /* ignore */ }
+
+                // 续播
+                if (savedPos > 5 && savedPos < (player.duration || Infinity) - 5) {
+                    player.currentTime = savedPos;
+                    showToast(`已从 ${fmtTime(savedPos)} 续播`, () => {
+                        player.currentTime = 0;
+                        player.play();
+                    });
+                }
+                player.play().catch(() => {});
+            };
+            player.addEventListener('loadedmetadata', onLoaded);
+            player.load();
+
+            // 滚动到播放器
+            document.querySelector('.player-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 点击列表
         videoList.addEventListener('click', function (e) {
             const link = e.target.closest('a[data-src]');
             if (!link) return;
             e.preventDefault();
-            const src = link.getAttribute('data-src');
-            const name = link.getAttribute('data-name');
-            player.src = src;
-            player.load();
-            player.play().catch(() => {
-                // 自动播放被浏览器阻止时忽略，用户手动点播放
-            });
-            nowPlaying.innerHTML = `正在播放：<span>${name}</span>`;
-            // 滚动到播放器
-            document.querySelector('.player-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            playVideo(link.getAttribute('data-name'), link.getAttribute('data-src'));
         });
 
-        // 搜索实时过滤
-        searchInput.addEventListener('input', function () {
-            renderList(this.value);
+        // 播放中定时上报进度
+        player.addEventListener('timeupdate', () => {
+            const now = Date.now();
+            if (!player.paused && !player.ended && now - lastProgressSend >= 5000) {
+                lastProgressSend = now;
+                sendProgress();
+            }
         });
+
+        // 暂停时也上报一次
+        player.addEventListener('pause', () => {
+            if (currentSession) sendProgress();
+        });
+
+        // 播放结束
+        player.addEventListener('ended', () => {
+            if (currentSession) {
+                sendProgress();
+                endCurrentSession();
+            }
+            // 刷新列表徽章
+            loadAllProgress().then(() => renderList(searchInput.value));
+        });
+
+        // 页面关闭时结束会话
+        window.addEventListener('beforeunload', endCurrentSession);
+
+        // 搜索
+        searchInput.addEventListener('input', () => renderList(searchInput.value));
 
         // 初始化
-        renderList();
+        (async () => {
+            await loadAllProgress();
+            renderList();
+        })();
     </script>
 </body>
 </html>
