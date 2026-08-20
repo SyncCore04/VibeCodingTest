@@ -85,26 +85,40 @@ def init_db():
 def identify_device():
     device_id = request.cookies.get('device_id')
     now = datetime.now().isoformat()
+    ip = request.remote_addr
+    ua = request.user_agent.string
+
+    db = get_db()
 
     if not device_id:
-        device_id = str(uuid.uuid4())
-        g.new_device = True
+        # 无 Cookie：先尝试通过 IP + User-Agent 匹配最近的设备
+        # 解决首次访问时多个并发请求各自生成新设备的竞态问题
+        # 同时兼容不持久化 Cookie 的嵌入式浏览器（如电视盒子）
+        existing = db.execute(
+            "SELECT id FROM devices WHERE ip = ? AND user_agent = ? ORDER BY last_seen DESC LIMIT 1",
+            (ip, ua)
+        ).fetchone()
+        if existing:
+            device_id = existing['id']
+            g.new_device = False
+        else:
+            device_id = str(uuid.uuid4())
+            g.new_device = True
     else:
         g.new_device = False
 
     g.device_id = device_id
 
-    db = get_db()
     existing = db.execute("SELECT id FROM devices WHERE id = ?", (device_id,)).fetchone()
     if existing:
         db.execute(
             "UPDATE devices SET last_seen=?, ip=?, user_agent=? WHERE id=?",
-            (now, request.remote_addr, request.user_agent.string, device_id)
+            (now, ip, ua, device_id)
         )
     else:
         db.execute(
             "INSERT INTO devices (id, tag, ip, user_agent, first_seen, last_seen) VALUES (?,?,?,?,?,?)",
-            (device_id, None, request.remote_addr, request.user_agent.string, now, now)
+            (device_id, None, ip, ua, now, now)
         )
     db.commit()
 
